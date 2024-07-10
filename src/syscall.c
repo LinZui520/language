@@ -1,5 +1,6 @@
 #include "syscall.h"
 
+// 0号系统调用 读取文件
 ssize_t read(ssize_t fd, char *buf, size_t count)
 {
 	ssize_t result;
@@ -15,6 +16,7 @@ ssize_t read(ssize_t fd, char *buf, size_t count)
 	return result;
 }
 
+// 1号系统调用 写入文件
 ssize_t write(ssize_t fd, const char *buf, size_t count)
 {
 	ssize_t result;
@@ -30,6 +32,7 @@ ssize_t write(ssize_t fd, const char *buf, size_t count)
 	return result;
 }
 
+// 2号系统调用 打开文件
 ssize_t open(const char *pathname, int flags, int mode)
 {
 	ssize_t result;
@@ -45,6 +48,7 @@ ssize_t open(const char *pathname, int flags, int mode)
 	return result;
 }
 
+// 3号系统调用 关闭文件
 ssize_t close(ssize_t fd)
 {
 	ssize_t result;
@@ -56,4 +60,20 @@ ssize_t close(ssize_t fd)
 		     : "r"(fd)
 		     : "rax", "rdi", "memory");
 	return result;
+}
+
+// 8号系统调用 移动文件指针
+ssize_t lseek(ssize_t fd, ssize_t offset, ssize_t whence)
+{
+    ssize_t result;
+    asm volatile("movq $8, %%rax\n\t"
+                 "movq %1, %%rdi\n\t"
+                 "movq %2, %%rsi\n\t"
+                 "movq %3, %%rdx\n\t"
+                 "syscall\n\t"
+                 "movq %%rax, %0\n\t"
+                 : "=r"(result)
+                 : "r"(fd), "r"(offset), "r"(whence)
+                 : "rax", "rdi", "rsi", "rdx", "memory");
+    return result;
 }
