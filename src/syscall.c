@@ -65,15 +65,29 @@ ssize_t close(ssize_t fd)
 // 8号系统调用 移动文件指针
 ssize_t lseek(ssize_t fd, ssize_t offset, ssize_t whence)
 {
-    ssize_t result;
-    asm volatile("movq $8, %%rax\n\t"
-                 "movq %1, %%rdi\n\t"
-                 "movq %2, %%rsi\n\t"
-                 "movq %3, %%rdx\n\t"
-                 "syscall\n\t"
-                 "movq %%rax, %0\n\t"
-                 : "=r"(result)
-                 : "r"(fd), "r"(offset), "r"(whence)
-                 : "rax", "rdi", "rsi", "rdx", "memory");
-    return result;
+	ssize_t result;
+	asm volatile("movq $8, %%rax\n\t"
+		     "movq %1, %%rdi\n\t"
+		     "movq %2, %%rsi\n\t"
+		     "movq %3, %%rdx\n\t"
+		     "syscall\n\t"
+		     "movq %%rax, %0\n\t"
+		     : "=r"(result)
+		     : "r"(fd), "r"(offset), "r"(whence)
+		     : "rax", "rdi", "rsi", "rdx", "memory");
+	return result;
+}
+
+// 12号系统调用 移动brk指针
+ssize_t brk(void *addr)
+{
+	ssize_t result;
+	asm volatile("movq $12, %%rax\n\t"
+		     "movq %1, %%rdi\n\t"
+		     "syscall\n\t"
+		     "movq %%rax, %0\n\t"
+		     : "=r"(result)
+		     : "r"(addr)
+		     : "rax", "rdi", "memory");
+	return result;
 }

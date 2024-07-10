@@ -13,9 +13,10 @@ ssize_t open(const char *pathname, int flags, int mode);
 
 ssize_t close(ssize_t fd);
 
-
 #define SEEK_SET 0
 #define SEEK_CUR 1
 #define SEEK_END 2
 
 ssize_t lseek(ssize_t fd, ssize_t offset, ssize_t whence);
+
+ssize_t brk(void *addr);

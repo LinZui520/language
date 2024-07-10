@@ -5,3 +5,5 @@
 
 // 计算字符串长度
 ssize_t strlen(const char *buf);
+
+ssize_t alloc_memory(size_t size);
