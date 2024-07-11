@@ -61,7 +61,7 @@ void print(const char *format, ...)
 			write(STDOUT, format, 1);
 		} else if (*format == 's') {
 			char *str = __builtin_va_arg(args, char *);
-			write(STDOUT, str, strlen(str));
+			write(STDOUT, str, str_len(str));
 		} else if (*format == 'd') {
 			int num = __builtin_va_arg(args, int);
 			int temp = num < 0 ? -num : num;
