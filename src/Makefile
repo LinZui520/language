@@ -1,6 +1,6 @@
 CC = gcc
 
-CFLAGS = -Wall -Werror -g
+CFLAGS = -Wall -Werror -std=gnu17
 
 SRC_DIR = .
 OBJ_DIR = ../obj
