@@ -1,10 +1,14 @@
+#ifndef LEXER_H
+#define LEXER_H
+
 #include "syscall.h"
 #include "utils.h"
 
 enum token_type {
 	// 关键字
 	// TOKEN_KEYWORD_VOID, //关键字 void
-	TOKEN_KEYWORD_INT, //关键字 int
+	TOKEN_KEYWORD_VAR, //关键字 var
+	TOKEN_KEYWORD_FUNC, //关键字 func
 	// TOKEN_KEYWORD_IF, //关键字 if
 	// TOKEN_KEYWORD_ELSE, //关键字 else
 	// TOKEN_KEYWORD_FOR, //关键字 for
@@ -58,3 +62,5 @@ struct token {
 char *get_string_by_token_type(enum token_type type);
 
 struct token *lexer(const char *code);
+
+#endif

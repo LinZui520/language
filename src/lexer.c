@@ -7,8 +7,11 @@ char *get_string_by_token_type(enum token_type type)
 {
 	char *str = (char *)alloc_memory(sizeof(char) * 32);
 	switch (type) {
-	case TOKEN_KEYWORD_INT:
-		str_copy(str, "token_keyword_int");
+	case TOKEN_KEYWORD_VAR:
+		str_copy(str, "token_keyword_var");
+		break;
+	case TOKEN_KEYWORD_FUNC:
+		str_copy(str, "token_keyword_func");
 		break;
 	case TOKEN_KEYWORD_RETURN:
 		str_copy(str, "token_keyword_return");
@@ -63,8 +66,10 @@ char *get_string_by_token_type(enum token_type type)
 
 enum token_type get_token_type_by_string(const char *str)
 {
-	if (str_cmp(str, "int") == 0)
-		return TOKEN_KEYWORD_INT;
+	if (str_cmp(str, "var") == 0)
+		return TOKEN_KEYWORD_VAR;
+	if (str_cmp(str, "func") == 0)
+		return TOKEN_KEYWORD_FUNC;
 	if (str_cmp(str, "return") == 0)
 		return TOKEN_KEYWORD_RETURN;
 	if (str_cmp(str, "=") == 0)
@@ -94,8 +99,8 @@ enum token_type get_token_type_by_string(const char *str)
 	return TOKEN_IDENTIFIER;
 }
 
-struct token *new_token(enum token_type type, const char *value, ssize_t line,
-			ssize_t column)
+struct token *create_token(enum token_type type, const char *value,
+			   ssize_t line, ssize_t column)
 {
 	struct token *token =
 		(struct token *)alloc_memory(sizeof(struct token));
@@ -108,16 +113,16 @@ struct token *new_token(enum token_type type, const char *value, ssize_t line,
 }
 
 // 将buf中的字符串转换为token并存储到链表尾端
-void new_token_by_buf(char *buf, ssize_t *i, struct token **tail, ssize_t line,
-		      ssize_t *column)
+void add_token_to_tail(char *buf, ssize_t *i, struct token **tail, ssize_t line,
+		       ssize_t *column)
 {
 	char *str = (char *)alloc_memory(sizeof(char) * (*i));
 	str_copy(str, buf);
 	struct token *token =
-		new_token(get_token_type_by_string(buf), str, line, *column);
+		create_token(get_token_type_by_string(buf), str, line, *column);
 	(*tail)->next = token;
 	(*tail) = (*tail)->next;
-        *column += *i - 1 ;
+	*column += *i - 1;
 	buf[0] = '\0';
 	*i = 0;
 }
@@ -132,13 +137,22 @@ struct token *lexer(const char *code)
 	char buf[128];
 	ssize_t i = 0;
 
-	struct token *head = (struct token *)alloc_memory(sizeof(struct token));
-	struct token *tail = head;
+	// 创建一个头结点，方便操作 在函数结束时释放
+	struct token head = {
+		.type = TOKEN_EOF,
+		.value = "EOF",
+		.line = 0,
+		.column = 0,
+		.next = (struct token *)0,
+	};
+	struct token *tail = &head;
+
 	while (code[index] != '\0') {
 		if (code[index] == ' ') {
 			if (buf[0] != '\0') {
 				buf[i++] = '\0';
-				new_token_by_buf(buf, &i, &tail, line, &column);
+				add_token_to_tail(buf, &i, &tail, line,
+						  &column);
 			}
 			column++;
 			index++;
@@ -146,7 +160,8 @@ struct token *lexer(const char *code)
 		} else if (code[index] == '\n') {
 			if (buf[0] != '\0') {
 				buf[i++] = '\0';
-				new_token_by_buf(buf, &i, &tail, line, &column);
+				add_token_to_tail(buf, &i, &tail, line,
+						  &column);
 			}
 			line++;
 			column = 1;
@@ -155,7 +170,8 @@ struct token *lexer(const char *code)
 		} else if (code[index] == '\t') {
 			if (buf[0] != '\0') {
 				buf[i++] = '\0';
-				new_token_by_buf(buf, &i, &tail, line, &column);
+				add_token_to_tail(buf, &i, &tail, line,
+						  &column);
 			}
 			column += 8;
 			index++;
@@ -168,15 +184,16 @@ struct token *lexer(const char *code)
 			   code[index] == '}') {
 			if (buf[0] != '\0') {
 				buf[i++] = '\0';
-				new_token_by_buf(buf, &i, &tail, line, &column);
+				add_token_to_tail(buf, &i, &tail, line,
+						  &column);
 			}
 
 			char *str = (char *)alloc_memory(sizeof(char) * 2);
 			str[0] = code[index];
 			str[1] = '\0';
 			struct token *token =
-				new_token(get_token_type_by_string(str), str,
-					  line, column);
+				create_token(get_token_type_by_string(str), str,
+					     line, column);
 			tail->next = token;
 			tail = tail->next;
 
@@ -186,9 +203,9 @@ struct token *lexer(const char *code)
 			buf[i++] = code[index++];
 		}
 	}
-	struct token *token = new_token(TOKEN_EOF, "EOF", line, column);
+	struct token *token = create_token(TOKEN_EOF, "EOF", line, column);
 	tail->next = token;
 	tail = tail->next;
 
-	return head->next;
+	return head.next;
 }

@@ -1,3 +1,5 @@
+#ifndef SYSCALL_H
+#define SYSCALL_H
 
 typedef unsigned long int size_t;
 typedef signed long int ssize_t;
@@ -20,3 +22,5 @@ ssize_t close(ssize_t fd);
 ssize_t lseek(ssize_t fd, ssize_t offset, ssize_t whence);
 
 ssize_t brk(void *addr);
+
+#endif
