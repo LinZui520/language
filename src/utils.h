@@ -1,3 +1,6 @@
+#ifndef UTILS_H
+#define UTILS_H
+
 #include "syscall.h"
 
 // 计算字符串长度
@@ -10,4 +13,8 @@ void str_copy(char *dest, const char *src);
 
 ssize_t is_all_digit(const char *buf);
 
+int atoi(const char *buf);
+
 ssize_t alloc_memory(size_t size);
+
+#endif

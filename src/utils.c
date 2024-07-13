@@ -41,6 +41,21 @@ ssize_t is_all_digit(char *buf)
 	return 1;
 }
 
+int atoi(const char *buf)
+{
+	int num = 0;
+	int flag = 1;
+	if (*buf == '-') {
+		buf++;
+		flag = -1;
+	}
+	while (*buf != '\0') {
+		num = num * 10 + *buf - '0';
+		buf++;
+	}
+	return flag * num;
+}
+
 ssize_t alloc_memory(size_t size)
 {
 	ssize_t addr = brk((void *)0);
