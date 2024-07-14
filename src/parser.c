@@ -159,26 +159,23 @@ int get_punctuator_priority(const char *oparator)
  *         a     3
  * 省略的部分就是这个函数解析的返回的根节点
  */
-struct AST_expr *array_parsing_to_tree(struct AST_expr **array, int count)
+struct AST_expr *array_parsing_to_tree(struct AST_expr **array, int start,
+				       int count)
 {
 	int index = 0;
 	struct AST_expr **stack = array;
 
-	int flag = 0;
-	for (int i = 0; i < count; i++) {
+	int last_priority = 0;
+	for (int i = start; i < count; i++) {
 		if (array[i]->type == AST_EXPR_IDENTIFIER ||
 		    array[i]->type == AST_EXPR_NUMBER ||
 		    array[i]->type == AST_EXPR_CALL) {
 			stack[index] = array[i];
 			index++;
 		} else if (array[i]->type == AST_EXPR_UNARY) {
-			int priority = get_punctuator_priority(
+			int current_priority = get_punctuator_priority(
 				array[i]->value.unary.oparator);
-			if (priority > flag) {
-				stack[index] = array[i];
-				index++;
-				flag = priority;
-			} else {
+			if (current_priority <= last_priority) {
 				index -= 2;
 				stack[index]->value.unary.left =
 					stack[index - 1];
@@ -186,6 +183,9 @@ struct AST_expr *array_parsing_to_tree(struct AST_expr **array, int count)
 					stack[index + 1];
 				stack[index - 1] = stack[index];
 			}
+			stack[index] = array[i];
+			index++;
+			last_priority = current_priority;
 		}
 	}
 
@@ -471,7 +471,7 @@ struct AST_expr *parser(struct token *tokens)
 			root->value.root.function[current_function_index]
 				->value.function.body->value.body
 				.expr[current_body_index] =
-				array_parsing_to_tree(array, array_index);
+				array_parsing_to_tree(array, 0, array_index);
 			array_index = 0;
 			current_body_index++;
 		} else if (tokens->type == TOKEN_PUNCTUATOR_COMMA) {
