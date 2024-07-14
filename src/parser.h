@@ -7,6 +7,7 @@ enum AST_expr_type {
 	AST_EXPR_ROOT, // 根节点
 	AST_EXPR_IDENTIFIER, // 标识符 a main
 	AST_EXPR_NUMBER, // 数字常量 1
+	AST_EXPR_KEYWORD, // 关键字
 	AST_EXPR_UNARY, // 一元操作符
 	AST_EXPR_CALL, // 函数调用
 	AST_EXPR_PROTOTYPE, // 函数原型
@@ -28,6 +29,9 @@ struct AST_expr {
 
 		// 标识符
 		const char *identifier;
+
+		// 关键字
+		const char *keyword;
 
 		// 操作符
 		struct {
@@ -64,7 +68,7 @@ struct AST_expr {
 	} value;
 };
 
-char *get_string_by_expr_type(enum AST_expr_type type);
+void print_AST(struct AST_expr *expr, int deepin);
 
 struct AST_expr *parser(struct token *tokens);
 

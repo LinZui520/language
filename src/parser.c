@@ -1,6 +1,7 @@
 #include "parser.h"
 #include "lexer.h"
 #include "utils.h"
+#include "io.h"
 
 char *get_string_by_expr_type(enum AST_expr_type type)
 {
@@ -14,6 +15,9 @@ char *get_string_by_expr_type(enum AST_expr_type type)
 		break;
 	case AST_EXPR_NUMBER:
 		str_copy(str, "number");
+		break;
+	case AST_EXPR_KEYWORD:
+		str_copy(str, "keyword");
 		break;
 	case AST_EXPR_UNARY:
 		str_copy(str, "unary");
@@ -36,8 +40,106 @@ char *get_string_by_expr_type(enum AST_expr_type type)
 	}
 	return str;
 }
+
+void print_deepin(int deepin)
+{
+	switch (deepin) {
+	case 1:
+		print("|---------");
+		break;
+	case 2:
+		print("|------------");
+		break;
+	case 3:
+		print("|----------------");
+		break;
+	case 4:
+		print("|-------------------");
+		break;
+	case 5:
+		print("|----------------------");
+		break;
+	case 6:
+		print("|-------------------------");
+		break;
+	}
+}
+
+void print_AST(struct AST_expr *expr, int deepin)
+{
+	if (expr == (void *)0)
+		return;
+	if (expr->type == AST_EXPR_ROOT) {
+		print("%s\n", get_string_by_expr_type(expr->type));
+		for (int i = 0; i < expr->value.root.count; i++) {
+			print_AST(expr->value.root.function[i], deepin);
+			print("|\n");
+		}
+	} else if (expr->type == AST_EXPR_FUNCTION) {
+		print("|---%s\n", get_string_by_expr_type(expr->type));
+		print_AST(expr->value.function.prototype, deepin);
+		print_AST(expr->value.function.body, deepin);
+	} else if (expr->type == AST_EXPR_PROTOTYPE) {
+		print("|------%s\n", get_string_by_expr_type(expr->type));
+		// prototype name
+		print("|---------func_name: %s:%s\n",
+		      get_string_by_expr_type(expr->value.prototype.name->type),
+		      expr->value.prototype.name->value.identifier);
+		// prototype args
+		for (int i = 0; i < expr->value.prototype.argc; i++) {
+			print("|---------func_args: %s:%s\n",
+			      get_string_by_expr_type(
+				      expr->value.prototype.args[i]->type),
+			      expr->value.prototype.args[i]->value.identifier);
+		}
+	} else if (expr->type == AST_EXPR_BODY) {
+		print("|------%s\n", get_string_by_expr_type(expr->type));
+		for (int i = 0; i < expr->value.body.count; i++) {
+			// body expr
+			print_AST(expr->value.body.expr[i], deepin);
+			print("|\n");
+		}
+	} else if (expr->type == AST_EXPR_IDENTIFIER) {
+		print_deepin(deepin);
+		print("%s\n", expr->value.identifier);
+	} else if (expr->type == AST_EXPR_NUMBER) {
+		print_deepin(deepin);
+		print("%d\n", expr->value.number);
+	} else if (expr->type == AST_EXPR_CALL) {
+		print_deepin(deepin);
+		print("call\n");
+		print_AST(expr->value.call.name, deepin + 1);
+		for (int i = 0; i < expr->value.call.argc; i++) {
+			print_AST(expr->value.call.args[i], deepin + 1);
+		}
+	} else if (expr->type == AST_EXPR_UNARY) {
+		print_AST(expr->value.unary.left, deepin + 1);
+		print_deepin(deepin);
+		print("-/\n");
+
+		print_deepin(deepin);
+		print("%s\n", expr->value.unary.oparator);
+
+		print_deepin(deepin);
+		print("-\\\n");
+		print_AST(expr->value.unary.right, deepin + 1);
+	}
+}
+
+// 获取操作符的优先级
+int get_punctuator_priority(const char *oparator)
+{
+	if (str_cmp(oparator, "=") == 0)
+		return 1;
+	if (str_cmp(oparator, "+") == 0 || str_cmp(oparator, "-") == 0)
+		return 2;
+	if (str_cmp(oparator, "*") == 0 || str_cmp(oparator, "/") == 0)
+		return 3;
+	return 0;
+}
+
 /*
- * 假如栈里面的数据为 a = 1 + 2 * 3 这7个节点
+ * 假如数组里面的数据为 a = 1 + 2 * 3 这7个节点
  * 那么这个函数会将其解析为
  *                 =
  *               /   \
@@ -57,10 +159,44 @@ char *get_string_by_expr_type(enum AST_expr_type type)
  *         a     3
  * 省略的部分就是这个函数解析的返回的根节点
  */
-struct AST_expr *stack_parsing_to_tree(struct AST_expr **stack, int count)
+struct AST_expr *array_parsing_to_tree(struct AST_expr **array, int count)
 {
-	// todo:
-	return (void *)0;
+	int index = 0;
+	struct AST_expr **stack = array;
+
+	int flag = 0;
+	for (int i = 0; i < count; i++) {
+		if (array[i]->type == AST_EXPR_IDENTIFIER ||
+		    array[i]->type == AST_EXPR_NUMBER ||
+		    array[i]->type == AST_EXPR_CALL) {
+			stack[index] = array[i];
+			index++;
+		} else if (array[i]->type == AST_EXPR_UNARY) {
+			int priority = get_punctuator_priority(
+				array[i]->value.unary.oparator);
+			if (priority > flag) {
+				stack[index] = array[i];
+				index++;
+				flag = priority;
+			} else {
+				index -= 2;
+				stack[index]->value.unary.left =
+					stack[index - 1];
+				stack[index]->value.unary.right =
+					stack[index + 1];
+				stack[index - 1] = stack[index];
+			}
+		}
+	}
+
+	while (index > 2) {
+		index -= 2;
+		stack[index]->value.unary.left = stack[index - 1];
+		stack[index]->value.unary.right = stack[index + 1];
+		stack[index - 1] = stack[index];
+	}
+
+	return stack[0];
 }
 
 /*
@@ -93,7 +229,65 @@ struct AST_expr *create_body_expr(struct token *tokens)
 	return body;
 }
 
-#include "io.h"
+/*
+ * 这个函数主要是创建函数调用的节点
+ * 比如 add(a, 1) 这个函数的节点大概长这样
+ * 	       call
+ * 	    /    |   \
+ *        add    a    1
+ */
+struct AST_expr *create_call_expr(struct token **tokens)
+{
+	struct AST_expr *call =
+		(struct AST_expr *)alloc_memory(sizeof(struct AST_expr));
+	call->type = AST_EXPR_CALL;
+	call->value.call.name =
+		(struct AST_expr *)alloc_memory(sizeof(struct AST_expr));
+	call->value.call.name->type = AST_EXPR_IDENTIFIER;
+	call->value.call.name->value.identifier = (*tokens)->value;
+
+	*tokens = (*tokens)->next;
+
+	int count = 0;
+	struct token *temp = *tokens;
+	while (temp->type != TOKEN_PUNCTUATOR_RIGHT_PARENTHESIS) {
+		if (temp->type == TOKEN_IDENTIFIER ||
+		    temp->type == TOKEN_CONSTANT_INTEGER) {
+			count++;
+		}
+		temp = temp->next;
+	}
+
+	call->value.call.argc = count;
+	call->value.call.args = (struct AST_expr **)alloc_memory(
+		sizeof(struct AST_expr *) * count);
+
+	int index = 0;
+	while ((*tokens)->type != TOKEN_PUNCTUATOR_RIGHT_PARENTHESIS) {
+		if ((*tokens)->type == TOKEN_IDENTIFIER) {
+			call->value.call.args[index] =
+				(struct AST_expr *)alloc_memory(
+					sizeof(struct AST_expr));
+			call->value.call.args[index]->type =
+				AST_EXPR_IDENTIFIER;
+			call->value.call.args[index]->value.identifier =
+				(*tokens)->value;
+			index++;
+		} else if ((*tokens)->type == TOKEN_CONSTANT_INTEGER) {
+			call->value.call.args[index] =
+				(struct AST_expr *)alloc_memory(
+					sizeof(struct AST_expr));
+			call->value.call.args[index]->type = AST_EXPR_NUMBER;
+			call->value.call.args[index]->value.number =
+				atoi((*tokens)->value);
+			index++;
+		}
+		*tokens = (*tokens)->next;
+	}
+
+	return call;
+}
+
 /*
  * 这个函数主要是获取函数原型
  * 也就是获取 函数名称 和 需要的参数名称和数量 
@@ -210,10 +404,10 @@ struct AST_expr *parser(struct token *tokens)
 	int current_function_index = 0;
 	int current_body_index = 0;
 
-	// 将表达式节点存储到栈中 用于后续的表达式解析
-	struct AST_expr **stack = (struct AST_expr **)alloc_memory(
-		sizeof(struct AST_expr *) * 32);
-	int stack_index = 0;
+	// 将表达式节点存储到数组中 用于后续的表达式解析
+	struct AST_expr **array = (struct AST_expr **)alloc_memory(
+		sizeof(struct AST_expr *) * 64);
+	int array_index = 0;
 
 	while (tokens != (void *)0) {
 		if (tokens->type == TOKEN_KEYWORD_FUNC) {
@@ -225,40 +419,60 @@ struct AST_expr *parser(struct token *tokens)
 				create_body_expr(tokens);
 		} else if (tokens->type == TOKEN_KEYWORD_VAR) {
 			// 关键字 var
+			array[array_index] = (struct AST_expr *)alloc_memory(
+				sizeof(struct AST_expr));
+			array[array_index]->type = AST_EXPR_KEYWORD;
+			array[array_index]->value.keyword = tokens->value;
+			array_index++;
 		} else if (tokens->type == TOKEN_KEYWORD_RETURN) {
 			// 关键字 return
-		} else if (tokens->type == TOKEN_IDENTIFIER) {
-			// 标识符 a main
-			stack[stack_index] = (struct AST_expr *)alloc_memory(
+			array[array_index] = (struct AST_expr *)alloc_memory(
 				sizeof(struct AST_expr));
-			stack[stack_index]->type = AST_EXPR_IDENTIFIER;
-			stack[stack_index]->value.identifier = tokens->value;
-			stack_index++;
+			array[array_index]->type = AST_EXPR_KEYWORD;
+			array[array_index]->value.keyword = tokens->value;
+		} else if (tokens->type == TOKEN_IDENTIFIER) {
+			// 标识符
+			if (tokens->next->type ==
+			    TOKEN_PUNCTUATOR_LEFT_PARENTHESIS) {
+				// 标识符 add 函数调用
+				array[array_index] = create_call_expr(&tokens);
+				array_index++;
+			} else {
+				// 标识符 a b
+				array[array_index] =
+					(struct AST_expr *)alloc_memory(
+						sizeof(struct AST_expr));
+				array[array_index]->type = AST_EXPR_IDENTIFIER;
+				array[array_index]->value.identifier =
+					tokens->value;
+				array_index++;
+			}
 		} else if (tokens->type == TOKEN_CONSTANT_INTEGER) {
 			// 常量 1 2
-			stack[stack_index] = (struct AST_expr *)alloc_memory(
+			array[array_index] = (struct AST_expr *)alloc_memory(
 				sizeof(struct AST_expr));
-			stack[stack_index]->type = AST_EXPR_NUMBER;
-			stack[stack_index]->value.number = atoi(tokens->value);
-			stack_index++;
+			array[array_index]->type = AST_EXPR_NUMBER;
+			array[array_index]->value.number = atoi(tokens->value);
+			array_index++;
 		} else if (tokens->type == TOKEN_PUNCTUATOR_ASSIGN ||
 			   tokens->type == TOKEN_PUNCTUATOR_ADD ||
 			   tokens->type == TOKEN_PUNCTUATOR_SUBTRACT ||
 			   tokens->type == TOKEN_PUNCTUATOR_MULTIPLY ||
 			   tokens->type == TOKEN_PUNCTUATOR_DIVIDE) {
 			// = + - * /
-			stack[stack_index] = (struct AST_expr *)alloc_memory(
+			array[array_index] = (struct AST_expr *)alloc_memory(
 				sizeof(struct AST_expr));
-			stack[stack_index]->type = AST_EXPR_UNARY;
-			stack[stack_index]->value.unary.oparator =
+			array[array_index]->type = AST_EXPR_UNARY;
+			array[array_index]->value.unary.oparator =
 				tokens->value;
-			stack_index++;
+			array_index++;
 		} else if (tokens->type == TOKEN_PUNCTUATOR_SEMICOLON) {
 			// ;
 			root->value.root.function[current_function_index]
 				->value.function.body->value.body
 				.expr[current_body_index] =
-				stack_parsing_to_tree(stack, stack_index);
+				array_parsing_to_tree(array, array_index);
+			array_index = 0;
 			current_body_index++;
 		} else if (tokens->type == TOKEN_PUNCTUATOR_COMMA) {
 			// ,
@@ -272,6 +486,7 @@ struct AST_expr *parser(struct token *tokens)
 			// }
 			current_function_index++;
 			current_body_index = 0;
+			array_index = 0;
 		} else if (tokens->type == TOKEN_EOF) {
 			break;
 		}

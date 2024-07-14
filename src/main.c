@@ -52,47 +52,7 @@ int main(int argc, char *argv[])
 	struct AST_expr *root = parser(tokens);
 
 	print("\n语法分析结果:\n");
-	// root
-	print("%s\n", get_string_by_expr_type(root->type));
-	for (int i = 0; i < root->value.root.count; i++) {
-		struct AST_expr *func = root->value.root.function[i];
-		// function
-		print("|---%s\n", get_string_by_expr_type(func->type));
-		// prototype
-		print("|------%s\n",
-		      get_string_by_expr_type(
-			      func->value.function.prototype->type));
-		// prototype name
-		print("|---------func_name: %s:%s\n",
-		      get_string_by_expr_type(
-			      func->value.function.prototype->value.prototype
-				      .name->type),
-		      func->value.function.prototype->value.prototype.name
-			      ->value.identifier);
-		// prototype args
-		for (int j = 0;
-		     j < func->value.function.prototype->value.prototype.argc;
-		     j++) {
-			print("|---------func_args: %s:%s\n",
-			      get_string_by_expr_type(
-				      func->value.function.prototype->value
-					      .prototype.args[j]
-					      ->type),
-			      func->value.function.prototype->value.prototype
-				      .args[j]
-				      ->value.identifier);
-		}
-
-		// body
-		print("|------%s\n",
-		      get_string_by_expr_type(func->value.function.body->type));
-		for (int j = 0; j < func->value.function.body->value.body.count;
-		     j++) {
-			// body expr
-			// todo:
-			print("|---------%s\n", "body expr");
-		}
-	}
+	print_AST(root, 1);
 
 	// 关闭文件
 	close(fd);
