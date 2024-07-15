@@ -163,10 +163,33 @@ struct AST_expr *array_parsing_to_tree(struct AST_expr **array, int start,
 				       int count)
 {
 	int index = 0;
-	struct AST_expr **stack = array;
+	struct AST_expr **stack = &array[start];
 
 	int last_priority = 0;
-	for (int i = start; i < count; i++) {
+
+	int flag = 0;
+	int punctuator_start = 0;
+	int punctuator_count = 0;
+	for (int i = start; i < start + count; i++) {
+		if (array[i]->type == AST_EXPR_PUNCTUATOR) {
+			if (str_cmp(array[i]->value.punctuator, "(") == 0) {
+				if (punctuator_start == 0) {
+					punctuator_start = i + 1;
+				}
+				flag ++;
+			} else if (str_cmp(array[i]->value.punctuator, ")") == 0) {
+				flag --;
+				if (flag == 0) {
+					punctuator_count = i - punctuator_start;
+					stack[index] = array_parsing_to_tree(
+						array, punctuator_start,
+						punctuator_count);
+					index++;
+				}
+			}
+		} 
+		if (flag > 0)
+			continue;
 		if (array[i]->type == AST_EXPR_IDENTIFIER ||
 		    array[i]->type == AST_EXPR_NUMBER ||
 		    array[i]->type == AST_EXPR_CALL) {
@@ -183,9 +206,11 @@ struct AST_expr *array_parsing_to_tree(struct AST_expr **array, int start,
 					stack[index + 1];
 				stack[index - 1] = stack[index];
 			}
+			last_priority = current_priority;
+		
+
 			stack[index] = array[i];
 			index++;
-			last_priority = current_priority;
 		}
 	}
 
@@ -476,10 +501,14 @@ struct AST_expr *parser(struct token *tokens)
 			current_body_index++;
 		} else if (tokens->type == TOKEN_PUNCTUATOR_COMMA) {
 			// ,
-		} else if (tokens->type == TOKEN_PUNCTUATOR_LEFT_PARENTHESIS) {
-			// (
-		} else if (tokens->type == TOKEN_PUNCTUATOR_RIGHT_PARENTHESIS) {
-			// )
+		} else if (tokens->type == TOKEN_PUNCTUATOR_LEFT_PARENTHESIS ||
+			   tokens->type == TOKEN_PUNCTUATOR_RIGHT_PARENTHESIS) {
+			// ( )
+			array[array_index] = (struct AST_expr *)alloc_memory(
+				sizeof(struct AST_expr));
+			array[array_index]->type = AST_EXPR_PUNCTUATOR;
+			array[array_index]->value.punctuator = tokens->value;
+			array_index++;
 		} else if (tokens->type == TOKEN_PUNCTUATOR_LEFT_BRACKET) {
 			// {
 		} else if (tokens->type == TOKEN_PUNCTUATOR_RIGHT_BRACKET) {

@@ -8,6 +8,7 @@ enum AST_expr_type {
 	AST_EXPR_IDENTIFIER, // 标识符 a main
 	AST_EXPR_NUMBER, // 数字常量 1
 	AST_EXPR_KEYWORD, // 关键字
+	AST_EXPR_PUNCTUATOR, // 标点符号 ; , ( ) { }
 	AST_EXPR_BINARY, // 二元操作符
 	AST_EXPR_CALL, // 函数调用
 	AST_EXPR_PROTOTYPE, // 函数原型
@@ -32,6 +33,9 @@ struct AST_expr {
 
 		// 关键字
 		const char *keyword;
+
+		// 标点符号
+		const char *punctuator;
 
 		// 二元操作符
 		struct {
