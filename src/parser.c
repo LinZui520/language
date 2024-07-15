@@ -176,18 +176,21 @@ struct AST_expr *array_parsing_to_tree(struct AST_expr **array, int start,
 				if (punctuator_start == 0) {
 					punctuator_start = i + 1;
 				}
-				flag ++;
-			} else if (str_cmp(array[i]->value.punctuator, ")") == 0) {
-				flag --;
+				flag++;
+			} else if (str_cmp(array[i]->value.punctuator, ")") ==
+				   0) {
+				flag--;
 				if (flag == 0) {
 					punctuator_count = i - punctuator_start;
 					stack[index] = array_parsing_to_tree(
 						array, punctuator_start,
 						punctuator_count);
 					index++;
+					punctuator_start = 0;
+					punctuator_count = 0;
 				}
 			}
-		} 
+		}
 		if (flag > 0)
 			continue;
 		if (array[i]->type == AST_EXPR_IDENTIFIER ||
@@ -207,7 +210,6 @@ struct AST_expr *array_parsing_to_tree(struct AST_expr **array, int start,
 				stack[index - 1] = stack[index];
 			}
 			last_priority = current_priority;
-		
 
 			stack[index] = array[i];
 			index++;
