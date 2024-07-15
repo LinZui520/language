@@ -19,8 +19,8 @@ char *get_string_by_expr_type(enum AST_expr_type type)
 	case AST_EXPR_KEYWORD:
 		str_copy(str, "keyword");
 		break;
-	case AST_EXPR_UNARY:
-		str_copy(str, "unary");
+	case AST_EXPR_BINARY:
+		str_copy(str, "binary");
 		break;
 	case AST_EXPR_CALL:
 		str_copy(str, "call");
@@ -112,17 +112,17 @@ void print_AST(struct AST_expr *expr, int deepin)
 		for (int i = 0; i < expr->value.call.argc; i++) {
 			print_AST(expr->value.call.args[i], deepin + 1);
 		}
-	} else if (expr->type == AST_EXPR_UNARY) {
-		print_AST(expr->value.unary.left, deepin + 1);
+	} else if (expr->type == AST_EXPR_BINARY) {
+		print_AST(expr->value.binary.left, deepin + 1);
 		print_deepin(deepin);
 		print("-/\n");
 
 		print_deepin(deepin);
-		print("%s\n", expr->value.unary.oparator);
+		print("%s\n", expr->value.binary.oparator);
 
 		print_deepin(deepin);
 		print("-\\\n");
-		print_AST(expr->value.unary.right, deepin + 1);
+		print_AST(expr->value.binary.right, deepin + 1);
 	}
 }
 
@@ -172,14 +172,14 @@ struct AST_expr *array_parsing_to_tree(struct AST_expr **array, int start,
 		    array[i]->type == AST_EXPR_CALL) {
 			stack[index] = array[i];
 			index++;
-		} else if (array[i]->type == AST_EXPR_UNARY) {
+		} else if (array[i]->type == AST_EXPR_BINARY) {
 			int current_priority = get_punctuator_priority(
-				array[i]->value.unary.oparator);
+				array[i]->value.binary.oparator);
 			if (current_priority <= last_priority) {
 				index -= 2;
-				stack[index]->value.unary.left =
+				stack[index]->value.binary.left =
 					stack[index - 1];
-				stack[index]->value.unary.right =
+				stack[index]->value.binary.right =
 					stack[index + 1];
 				stack[index - 1] = stack[index];
 			}
@@ -191,8 +191,8 @@ struct AST_expr *array_parsing_to_tree(struct AST_expr **array, int start,
 
 	while (index > 2) {
 		index -= 2;
-		stack[index]->value.unary.left = stack[index - 1];
-		stack[index]->value.unary.right = stack[index + 1];
+		stack[index]->value.binary.left = stack[index - 1];
+		stack[index]->value.binary.right = stack[index + 1];
 		stack[index - 1] = stack[index];
 	}
 
@@ -462,8 +462,8 @@ struct AST_expr *parser(struct token *tokens)
 			// = + - * /
 			array[array_index] = (struct AST_expr *)alloc_memory(
 				sizeof(struct AST_expr));
-			array[array_index]->type = AST_EXPR_UNARY;
-			array[array_index]->value.unary.oparator =
+			array[array_index]->type = AST_EXPR_BINARY;
+			array[array_index]->value.binary.oparator =
 				tokens->value;
 			array_index++;
 		} else if (tokens->type == TOKEN_PUNCTUATOR_SEMICOLON) {
