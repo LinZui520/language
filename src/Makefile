@@ -1,23 +1,25 @@
 CC = gcc
 
-CFLAGS = -Wall -Werror -std=gnu17
+CFLAGS = -Wall -Werror -std=gnu17 -nostdlib -fno-stack-protector
 
 SRC_DIR = .
 OBJ_DIR = ../obj
 BIN_DIR = ../bin
 
-SRCS = $(wildcard $(SRC_DIR)/*.c)
+SRCS_C = $(wildcard $(SRC_DIR)/*.c)
+SRCS_S = $(wildcard $(SRC_DIR)/*.s)
 
-OBJS = $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRCS))
+OBJS = $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRCS_C))
+OBJS += $(patsubst $(SRC_DIR)/%.s,$(OBJ_DIR)/%.o,$(SRCS_S))
 
 TARGET = $(BIN_DIR)/main
 
 all: $(TARGET)
 
 $(TARGET): $(OBJS) | $(BIN_DIR)
-	$(CC) $^ -o $@
+	$(CC) $(CFLAGS) $^ -o $@
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.[cs] | $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(OBJ_DIR) $(BIN_DIR):
