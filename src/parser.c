@@ -70,30 +70,27 @@ void print_AST(struct AST_expr *expr, int deepin)
 	if (expr == (void *)0)
 		return;
 	if (expr->type == AST_EXPR_ROOT) {
-		print("%s\n", get_string_by_expr_type(expr->type));
+		print("(%s)\n", get_string_by_expr_type(expr->type));
 		for (int i = 0; i < expr->value.root.count; i++) {
 			print_AST(expr->value.root.function[i], deepin);
 			print("|\n");
 		}
 	} else if (expr->type == AST_EXPR_FUNCTION) {
-		print("|---%s\n", get_string_by_expr_type(expr->type));
+		print("|---(%s)\n", get_string_by_expr_type(expr->type));
 		print_AST(expr->value.function.prototype, deepin);
 		print_AST(expr->value.function.body, deepin);
 	} else if (expr->type == AST_EXPR_PROTOTYPE) {
-		print("|------%s\n", get_string_by_expr_type(expr->type));
+		print("|------(%s)\n", get_string_by_expr_type(expr->type));
 		// prototype name
-		print("|---------func_name: %s:%s\n",
-		      get_string_by_expr_type(expr->value.prototype.name->type),
+		print("|---------(name): (%s)\n",
 		      expr->value.prototype.name->value.identifier);
 		// prototype args
 		for (int i = 0; i < expr->value.prototype.argc; i++) {
-			print("|---------func_args: %s:%s\n",
-			      get_string_by_expr_type(
-				      expr->value.prototype.args[i]->type),
+			print("|---------(args): (%s)\n",
 			      expr->value.prototype.args[i]->value.identifier);
 		}
 	} else if (expr->type == AST_EXPR_BODY) {
-		print("|------%s\n", get_string_by_expr_type(expr->type));
+		print("|------(%s)\n", get_string_by_expr_type(expr->type));
 		for (int i = 0; i < expr->value.body.count; i++) {
 			// body expr
 			print_AST(expr->value.body.expr[i], deepin);
@@ -101,13 +98,13 @@ void print_AST(struct AST_expr *expr, int deepin)
 		}
 	} else if (expr->type == AST_EXPR_IDENTIFIER) {
 		print_deepin(deepin);
-		print("%s\n", expr->value.identifier);
+		print("(%s)\n", expr->value.identifier);
 	} else if (expr->type == AST_EXPR_NUMBER) {
 		print_deepin(deepin);
-		print("%d\n", expr->value.number);
+		print("(%d)\n", expr->value.number);
 	} else if (expr->type == AST_EXPR_CALL) {
 		print_deepin(deepin);
-		print("call\n");
+		print("(call)\n");
 		print_AST(expr->value.call.name, deepin + 1);
 		for (int i = 0; i < expr->value.call.argc; i++) {
 			print_AST(expr->value.call.args[i], deepin + 1);
@@ -118,7 +115,7 @@ void print_AST(struct AST_expr *expr, int deepin)
 		print("-/\n");
 
 		print_deepin(deepin);
-		print("%s\n", expr->value.binary.oparator);
+		print("(%s)\n", expr->value.binary.oparator);
 
 		print_deepin(deepin);
 		print("-\\\n");
