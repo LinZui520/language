@@ -12,14 +12,18 @@
 
 - [x] 词法分析
 - [x] 语法分析
-- [ ] 语义分析
+- [x] 语义分析
 - [ ] 代码生成
 
 **词法分析**完成，实现`lexer`函数
 
 **语法分析**完成，实现`parser`函数
 
+**语义分析**完成
+
 `source code` ---`lexer`---> `tokens`---`parser`--->`AST`
+
+`AST`---`semantic_analysis`--->`symbols`					
 
 
 
@@ -66,6 +70,8 @@ $ make
 
 在`language/bin`下新建`main.txt`文件并输入
 
+正确代码 可以通过**语义分析**
+
 ```c
 func add(a, b)
 {
@@ -84,10 +90,36 @@ func main()
 
 ```
 
+或者输入错误代码 不能通过**语义分析**
+
+```c
+func mul(a, b)
+{
+    c = a + b;
+    return a * b * c;
+}
+
+func add(a, b)
+{
+    return a * (mul(a, b) + b);
+}
+
+func main()
+{
+    var a = 1;
+    b = 2;
+    c = 3 + mul(a, b);
+    d = ((a + b) * (c + 4)) - (b / 2);
+    e = (add(a, b) + e) * mul(c, d);
+    return 0;
+}
+
+```
+
 然后执行命令
 
 ```shell
 $ ../bin/main ../bin/main.txt
 ```
 
-就可以看到终端输出`tokens`，`AST_expr`
+就可以看到终端输出`tokens`，`AST_expr`，`symbols`
