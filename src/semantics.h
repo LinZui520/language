@@ -40,11 +40,6 @@ struct global_symbol_table {
 	int count;
 };
 
-enum semantic_analysis_status {
-	semantic_analysis_status_success,
-	semantic_analysis_status_fail
-};
-
-enum semantic_analysis_status semantic_analysis(struct AST_expr *root);
+struct global_symbol_table *semantic_analysis(struct AST_expr *root);
 
 #endif

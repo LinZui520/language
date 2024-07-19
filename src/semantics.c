@@ -162,9 +162,8 @@ struct global_symbol_table *init_global_symbol_table()
 	return tables;
 }
 
-enum semantic_analysis_status semantic_analysis(struct AST_expr *root)
+struct global_symbol_table *semantic_analysis(struct AST_expr *root)
 {
-	enum semantic_analysis_status status = semantic_analysis_status_success;
 	struct global_symbol_table *tables = init_global_symbol_table();
 	generate_global_symbol_table(root, tables, 0);
 	print("\n语义分析结果:\n");
@@ -258,10 +257,23 @@ enum semantic_analysis_status semantic_analysis(struct AST_expr *root)
 	}
 
 	for (int i = 0; i < tables->count; i++) {
-		if (tables->symbols[i]->status == symbol_status_undefined) {
-			status = semantic_analysis_status_fail;
-			break;
+		if (tables->symbols[i]->type == symbol_var && tables->symbols[i]->status == symbol_status_undefined) {		
+			goto fail;
+		}
+		if (tables->symbols[i]->type == symbol_call) {
+			if (tables->symbols[i]->status == symbol_status_undefined) {
+				goto fail;
+			}
+			for (int j = 0; j < tables->symbols[i]->attributes.call.argc; j++) {
+				if (tables->symbols[i]->attributes.call.args[j]->status == symbol_status_undefined) {
+					goto fail;
+				}
+			}
 		}
 	}
-	return status;
+	print("\n通过语义分析\n\n");
+	return tables;
+fail:
+	print("\n未通过语义分析\n\n");
+	return (void *)0;
 }

@@ -56,12 +56,8 @@ int main(int argc, char *argv[])
 	print_AST(root, 1);
 
 	// 语义分析
-	enum semantic_analysis_status status = semantic_analysis(root);
-	if (status == semantic_analysis_status_fail) {
-		print("\n未通过语义分析失败\n");
-		return 1;
-	}
-	print("\n通过语义分析\n");
+	//struct global_symbol_table *table = semantic_analysis(root);
+	semantic_analysis(root);
 
 	// 关闭文件
 	close(fd);
