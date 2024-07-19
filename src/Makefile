@@ -12,7 +12,7 @@ SRCS_S = $(wildcard $(SRC_DIR)/*.s)
 OBJS = $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRCS_C))
 OBJS += $(patsubst $(SRC_DIR)/%.s,$(OBJ_DIR)/%.o,$(SRCS_S))
 
-TARGET = $(BIN_DIR)/main
+TARGET = $(BIN_DIR)/compiler
 
 all: $(TARGET)
 

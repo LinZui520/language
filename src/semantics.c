@@ -257,15 +257,22 @@ struct global_symbol_table *semantic_analysis(struct AST_expr *root)
 	}
 
 	for (int i = 0; i < tables->count; i++) {
-		if (tables->symbols[i]->type == symbol_var && tables->symbols[i]->status == symbol_status_undefined) {		
+		if (tables->symbols[i]->type == symbol_var &&
+		    tables->symbols[i]->status == symbol_status_undefined) {
 			goto fail;
 		}
 		if (tables->symbols[i]->type == symbol_call) {
-			if (tables->symbols[i]->status == symbol_status_undefined) {
+			if (tables->symbols[i]->status ==
+			    symbol_status_undefined) {
 				goto fail;
 			}
-			for (int j = 0; j < tables->symbols[i]->attributes.call.argc; j++) {
-				if (tables->symbols[i]->attributes.call.args[j]->status == symbol_status_undefined) {
+			for (int j = 0;
+			     j < tables->symbols[i]->attributes.call.argc;
+			     j++) {
+				if (tables->symbols[i]
+					    ->attributes.call.args[j]
+					    ->status ==
+				    symbol_status_undefined) {
 					goto fail;
 				}
 			}
