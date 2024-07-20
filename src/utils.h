@@ -11,10 +11,14 @@ ssize_t str_cmp(const char *s1, const char *s2);
 
 void str_copy(char *dest, const char *src);
 
+void str_cat(char *dest, const char *src);
+
 ssize_t is_all_digit(const char *buf);
 
-int atoi(const char *buf);
+ssize_t atoi(const char *buf);
 
 ssize_t alloc_memory(size_t size);
+
+char *itoa(ssize_t num);
 
 #endif

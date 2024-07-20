@@ -31,6 +31,18 @@ void str_copy(char *dest, const char *src)
 	*dest = '\0';
 }
 
+void str_cat(char *dest, const char *src)
+{
+	while (*dest != '\0')
+		dest++;
+	while (*src != '\0') {
+		*dest = *src;
+		dest++;
+		src++;
+	}
+	*dest = '\0';
+}
+
 ssize_t is_all_digit(char *buf)
 {
 	while (*buf != '\0') {
@@ -41,9 +53,9 @@ ssize_t is_all_digit(char *buf)
 	return 1;
 }
 
-int atoi(const char *buf)
+ssize_t atoi(const char *buf)
 {
-	int num = 0;
+	ssize_t num = 0;
 	int flag = 1;
 	if (*buf == '-') {
 		buf++;
@@ -61,4 +73,35 @@ ssize_t alloc_memory(size_t size)
 	ssize_t addr = brk((void *)0);
 	brk((void *)(addr + size));
 	return addr;
+}
+
+char *itoa(ssize_t num)
+{
+	char *buf = (char *)alloc_memory(sizeof(char) * 128);
+	char *p = buf;
+	if (num < 0) {
+		*p = '-';
+		p++;
+		num = -num;
+	}
+	if (num == 0) {
+		*p = '0';
+		p++;
+	}
+	char *q = p;
+	while (num) {
+		*p = num % 10 + '0';
+		p++;
+		num /= 10;
+	}
+	*p = '\0';
+	p--;
+	while (q < p) {
+		char tmp = *q;
+		*q = *p;
+		*p = tmp;
+		q++;
+		p--;
+	}
+	return buf;
 }

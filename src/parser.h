@@ -2,6 +2,7 @@
 #define PARSER_H
 
 #include "lexer.h"
+#include "syscall.h"
 
 enum AST_expr_type {
 	AST_EXPR_ROOT, // 根节点
@@ -26,7 +27,7 @@ struct AST_expr {
 		} root;
 
 		// 数字常量
-		int number;
+		ssize_t number;
 
 		// 标识符
 		const char *identifier;
