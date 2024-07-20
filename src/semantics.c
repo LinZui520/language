@@ -126,13 +126,20 @@ void generate_global_symbol_table(struct AST_expr *expr,
 		tables->symbols[tables->count++] = symbol;
 		symbol->name = expr->value.call.name->value.identifier;
 		symbol->type = symbol_call;
+		int symbol_count = 0;
+		for (int i = 0; i < expr->value.call.argc; i++) {
+			if (expr->value.call.args[i]->type ==
+			    AST_EXPR_IDENTIFIER)
+				symbol_count++;
+		}
 		symbol->attributes.call.args = (struct symbol **)alloc_memory(
-			sizeof(struct symbol *) * expr->value.call.argc);
+			sizeof(struct symbol *) * symbol_count);
 		symbol->attributes.call.argc = expr->value.call.argc;
 		symbol->attributes.call.func = current_func;
 		symbol->attributes.call.offset = offset;
 		symbol->status = get_symbol_status(symbol, tables);
-		for (int i = 0; i < expr->value.call.argc; i++) {
+		symbol->attributes.call.argc = symbol_count;
+		for (int i = 0; i < symbol_count; i++) {
 			symbol->attributes.call.args[i] =
 				(struct symbol *)alloc_memory(
 					sizeof(struct symbol));
