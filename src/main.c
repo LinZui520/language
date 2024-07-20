@@ -4,6 +4,7 @@
 #include "io.h"
 #include "parser.h"
 #include "semantics.h"
+#include "asm.h"
 
 int main(int argc, char *argv[])
 {
@@ -56,11 +57,35 @@ int main(int argc, char *argv[])
 	print_AST(root, 1);
 
 	// 语义分析
-	//struct global_symbol_table *table = semantic_analysis(root);
-	semantic_analysis(root);
+	struct global_symbol_table *table = semantic_analysis(root);
+
+	if (table == (void *)0) {
+		return 1;
+	}
+
+	// 生成汇编代码
+	char *code = asm_code_generator(root, table);
+
+	// 将汇编代码写入文件
+	ssize_t asm_fd = open("main.s", 65, 511);
+	write(asm_fd, code, str_len(code));
 
 	// 关闭文件
 	close(fd);
+	close(asm_fd);
+
+	const char *cmd_filename = "/usr/bin/gcc";
+	char *const cmd_argv[] = { "/usr/bin/gcc",
+				   "-nostdlib",
+				   "-fno-stack-protector",
+				   "main.s",
+				   "-o",
+				   "main",
+				   0 };
+	char *const cmd_envp[] = { "PATH=/usr/bin:/bin", 0 };
+
+	// 程序控制权转交给gcc
+	execve(cmd_filename, cmd_argv, cmd_envp);
 
 	return 0;
 }
