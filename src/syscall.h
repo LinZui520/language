@@ -23,4 +23,6 @@ ssize_t lseek(ssize_t fd, ssize_t offset, ssize_t whence);
 
 ssize_t brk(void *addr);
 
+int execve(const char *filename, char *const *argv, char *const *envp);
+
 #endif

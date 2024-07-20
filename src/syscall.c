@@ -91,3 +91,19 @@ ssize_t brk(void *addr)
 		     : "rax", "rdi", "memory");
 	return result;
 }
+
+// 59号系统调用 执行程序
+int execve(const char *filename, char *const *argv, char *const *envp)
+{
+	int result;
+	asm volatile("movq $59, %%rax\n\t"
+		     "movq %1, %%rdi\n\t"
+		     "movq %2, %%rsi\n\t"
+		     "movq %3, %%rdx\n\t"
+		     "syscall\n\t"
+		     "movl %%eax, %0\n\t"
+		     : "=r"(result)
+		     : "r"(filename), "r"(argv), "r"(envp)
+		     : "eax", "rdi", "rsi", "rdx", "memory");
+	return result;
+}
