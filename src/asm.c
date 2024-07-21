@@ -106,7 +106,8 @@ struct symbol_memory_layout *get_func_memory_layout(const char *name)
 	end = end == -1 ? table->count - 1 : end;
 	int defined = 0;
 	for (int i = start; i <= end; i++) {
-		if (table->symbols[i]->type == symbol_func) {
+		if (table->symbols[i]->type == symbol_func &&
+		    table->symbols[i]->name == name) {
 			defined += table->symbols[i]->attributes.func.argc;
 		}
 		if (table->symbols[i]->type == symbol_var &&
@@ -119,7 +120,8 @@ struct symbol_memory_layout *get_func_memory_layout(const char *name)
 		sizeof(struct symbol_memory_layout *) * defined);
 
 	for (int i = start, index = 0; i <= end; i++) {
-		if (table->symbols[i]->type == symbol_func) {
+		if (table->symbols[i]->type == symbol_func &&
+		    table->symbols[i]->name == name) {
 			int argc = table->symbols[i]->attributes.func.argc;
 			struct symbol **args =
 				table->symbols[i]->attributes.func.args;
@@ -153,7 +155,8 @@ struct symbol_memory_layout *get_func_memory_layout(const char *name)
 			index++;
 		}
 	}
-
+#include "io.h"
+	print("%d %d %d\n", start, end, defined);
 	return layout;
 }
 
