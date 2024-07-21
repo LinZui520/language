@@ -232,7 +232,8 @@ void traverse_AST(struct AST_expr *expr, char *code)
 			flag = 1;
 		}
 
-		if (expr->value.binary.left->type == AST_EXPR_BINARY) {
+		if (expr->value.binary.left->type == AST_EXPR_BINARY ||
+		    expr->value.binary.right->type != AST_EXPR_BINARY) {
 			stack[++index] = -1;
 			traverse_AST(expr->value.binary.left, code);
 			stack[++index] = 1;
@@ -246,7 +247,6 @@ void traverse_AST(struct AST_expr *expr, char *code)
 
 		if (str_cmp(expr->value.binary.oparator, "+") == 0) {
 			if (flag == 1) {
-				str_cat(code, "\tpopq %rbx\n");
 				str_cat(code, "\tpopq %rax\n");
 			}
 			if (stack[index] == -1) {
@@ -255,8 +255,6 @@ void traverse_AST(struct AST_expr *expr, char *code)
 					str_cat(code, "\tpushq %rax\n");
 			} else if (stack[index] == 1) {
 				str_cat(code, "\taddq %rax, %rbx\n");
-				if (deepin > 0)
-					str_cat(code, "\tpushq %rbx\n");
 			}
 			if (flag == 1) {
 				deepin--;
@@ -264,7 +262,6 @@ void traverse_AST(struct AST_expr *expr, char *code)
 			index--;
 		} else if (str_cmp(expr->value.binary.oparator, "-") == 0) {
 			if (flag == 1) {
-				str_cat(code, "\tpopq %rbx\n");
 				str_cat(code, "\tpopq %rax\n");
 			}
 			str_cat(code, "\tsubq %rbx, %rax\n");
@@ -274,8 +271,6 @@ void traverse_AST(struct AST_expr *expr, char *code)
 			}
 			if (stack[index] == 1) {
 				str_cat(code, "\tmovq %rax, %rbx\n");
-				if (deepin > 0)
-					str_cat(code, "\tpushq %rbx\n");
 			}
 			if (flag == 1) {
 				deepin--;
@@ -283,7 +278,6 @@ void traverse_AST(struct AST_expr *expr, char *code)
 			index--;
 		} else if (str_cmp(expr->value.binary.oparator, "*") == 0) {
 			if (flag == 1) {
-				str_cat(code, "\tpopq %rbx\n");
 				str_cat(code, "\tpopq %rax\n");
 			}
 			str_cat(code, "\timulq %rbx, %rax\n");
@@ -293,8 +287,6 @@ void traverse_AST(struct AST_expr *expr, char *code)
 			}
 			if (stack[index] == 1) {
 				str_cat(code, "\tmovq %rax, %rbx\n");
-				if (deepin > 0)
-					str_cat(code, "\tpushq %rbx\n");
 			}
 			if (flag == 1) {
 				deepin--;
@@ -302,7 +294,6 @@ void traverse_AST(struct AST_expr *expr, char *code)
 			index--;
 		} else if (str_cmp(expr->value.binary.oparator, "/") == 0) {
 			if (flag == 1) {
-				str_cat(code, "\tpopq %rbx\n");
 				str_cat(code, "\tpopq %rax\n");
 			}
 			str_cat(code, "\txor %rdx, %rdx\n");
@@ -313,8 +304,6 @@ void traverse_AST(struct AST_expr *expr, char *code)
 			}
 			if (stack[index] == 1) {
 				str_cat(code, "\tmovq %rax, %rbx\n");
-				if (deepin > 0)
-					str_cat(code, "\tpushq %rbx\n");
 			}
 			if (flag == 1) {
 				deepin--;
@@ -368,19 +357,16 @@ void traverse_AST(struct AST_expr *expr, char *code)
 				break;
 			}
 		}
-		if (stack[index] == -1)
-			str_cat(code, "\tpushq %rbx\n");
-		else if (stack[index] == 1)
+		if (stack[index] == 1)
 			str_cat(code, "\tpushq %rax\n");
 		str_cat(code, "\tcall ");
 		str_cat(code, expr->value.call.name->value.identifier);
 		str_cat(code, "\n");
-		if (stack[index] == -1) {
-			str_cat(code, "\tpopq %rbx\n");
-		} else if (stack[index] == 1) {
+		if (stack[index] == 1) {
 			str_cat(code, "\tmovq %rax, %rbx\n");
 			str_cat(code, "\tpopq %rax\n");
 		}
+		index--;
 	}
 }
 
