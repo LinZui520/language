@@ -43,25 +43,9 @@ char *get_string_by_expr_type(enum AST_expr_type type)
 
 void print_deepin(int deepin)
 {
-	switch (deepin) {
-	case 1:
-		print("|---------");
-		break;
-	case 2:
-		print("|------------");
-		break;
-	case 3:
-		print("|----------------");
-		break;
-	case 4:
-		print("|-------------------");
-		break;
-	case 5:
-		print("|----------------------");
-		break;
-	case 6:
-		print("|-------------------------");
-		break;
+	print("|");
+	for (int i = 0; i < deepin; i++) {
+		print("---");
 	}
 }
 
@@ -70,30 +54,36 @@ void print_AST(struct AST_expr *expr, int deepin)
 	if (expr == (void *)0)
 		return;
 	if (expr->type == AST_EXPR_ROOT) {
+		print_deepin(deepin);
 		print("(%s)\n", get_string_by_expr_type(expr->type));
 		for (int i = 0; i < expr->value.root.count; i++) {
-			print_AST(expr->value.root.function[i], deepin);
+			print_AST(expr->value.root.function[i], deepin + 1);
 			print("|\n");
 		}
 	} else if (expr->type == AST_EXPR_FUNCTION) {
-		print("|---(%s)\n", get_string_by_expr_type(expr->type));
-		print_AST(expr->value.function.prototype, deepin);
-		print_AST(expr->value.function.body, deepin);
+		print_deepin(deepin);
+		print("(%s)\n", get_string_by_expr_type(expr->type));
+		print_AST(expr->value.function.prototype, deepin + 1);
+		print_AST(expr->value.function.body, deepin + 1);
 	} else if (expr->type == AST_EXPR_PROTOTYPE) {
-		print("|------(%s)\n", get_string_by_expr_type(expr->type));
+		print_deepin(deepin);
+		print("(%s)\n", get_string_by_expr_type(expr->type));
 		// prototype name
-		print("|---------(name): (%s)\n",
+		print_deepin(deepin + 1);
+		print("(name): (%s)\n",
 		      expr->value.prototype.name->value.identifier);
 		// prototype args
 		for (int i = 0; i < expr->value.prototype.argc; i++) {
-			print("|---------(args): (%s)\n",
+			print_deepin(deepin + 1);
+			print("(args): (%s)\n",
 			      expr->value.prototype.args[i]->value.identifier);
 		}
 	} else if (expr->type == AST_EXPR_BODY) {
-		print("|------(%s)\n", get_string_by_expr_type(expr->type));
+		print_deepin(deepin);
+		print("(%s)\n", get_string_by_expr_type(expr->type));
 		for (int i = 0; i < expr->value.body.count; i++) {
 			// body expr
-			print_AST(expr->value.body.expr[i], deepin);
+			print_AST(expr->value.body.expr[i], deepin + 1);
 			print("|\n");
 		}
 	} else if (expr->type == AST_EXPR_IDENTIFIER) {

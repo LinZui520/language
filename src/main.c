@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
 	struct AST_expr *root = parser(tokens);
 
 	print("\n语法分析结果:\n");
-	print_AST(root, 1);
+	print_AST(root, 0);
 
 	// 语义分析
 	struct global_symbol_table *table = semantic_analysis(root);
