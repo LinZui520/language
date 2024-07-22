@@ -10,13 +10,10 @@ static char *start_code = ".section .text\n"
 			  "\tcall main\n"
 			  "\n"
 			  "\t# 打印main函数的返回值\n"
-			  "\t# %r10寄存器存储除数10\n"
 			  "\tmovq $10, %r10\n"
 			  "\n"
-			  "\t# %rsi寄存器存储字符串起始地址 不包含'-'\n"
 			  "\tleaq (%rsp), %rsi\n"
 			  "\n"
-			  "\t# %rcx存储字符串的长度\n"
 			  "\txor %rcx, %rcx\n"
 			  "\n"
 			  "\ttest %rax, %rax\n"
@@ -158,9 +155,14 @@ struct symbol_memory_layout *get_func_memory_layout(const char *name)
 	return layout;
 }
 
-static int stack[16];
-static int index;
-void traverse_AST(struct AST_expr *expr, char *code, int last_flag)
+/*
+ * 遍历抽象语法树生成汇编代码
+ * flag < 0 表示当前节点为父节点的左子树
+ * flag > 0 表示当前节点为父节点的右子树
+ * flag = 1 || -1 表示当前节点的兄弟节点不是运算符
+ * flag = 2 || -2 表示当前节点的兄弟节点是运算符
+ */
+void traverse_AST(struct AST_expr *expr, char *code, int flag)
 {
 	if (expr->type == AST_EXPR_ROOT) {
 		for (int i = 0; i < expr->value.root.count; i++) {
@@ -208,14 +210,12 @@ void traverse_AST(struct AST_expr *expr, char *code, int last_flag)
 		}
 	} else if (expr->type == AST_EXPR_BODY) {
 		for (int i = 0; i < expr->value.body.count; i++) {
-			index = 0;
-			stack[index] = -1;
-			traverse_AST(expr->value.body.expr[i], code, 0);
+			traverse_AST(expr->value.body.expr[i], code, -1);
 			str_cat(code, "\n");
 		}
 	} else if (expr->type == AST_EXPR_BINARY) {
 		if (str_cmp(expr->value.binary.oparator, "=") == 0) {
-			traverse_AST(expr->value.binary.right, code, 0);
+			traverse_AST(expr->value.binary.right, code, -1);
 			str_cat(code, "\tmovq %rax, -");
 			str_cat(code,
 				itoa(get_offset(expr->value.binary.left->value
@@ -223,94 +223,71 @@ void traverse_AST(struct AST_expr *expr, char *code, int last_flag)
 			str_cat(code, "(%rbp)\n");
 			return;
 		}
-		int flag = 0;
+
+		// 节点的左右子树是运算符的数量
+		int num = 1;
 		if (expr->value.binary.left->type == AST_EXPR_BINARY &&
 		    expr->value.binary.right->type == AST_EXPR_BINARY) {
-			flag = 1;
+			num = 2;
 		}
 
 		if (expr->value.binary.left->type == AST_EXPR_BINARY ||
 		    expr->value.binary.right->type != AST_EXPR_BINARY) {
-			stack[++index] = -1;
-			traverse_AST(expr->value.binary.left, code, flag);
-			stack[++index] = 1;
-			traverse_AST(expr->value.binary.right, code, flag);
+			traverse_AST(expr->value.binary.left, code, -1 * num);
+			traverse_AST(expr->value.binary.right, code, 1 * num);
 		} else {
-			stack[++index] = 1;
-			traverse_AST(expr->value.binary.right, code, flag);
-			stack[++index] = -1;
-			traverse_AST(expr->value.binary.left, code, flag);
+			traverse_AST(expr->value.binary.right, code, 1 * num);
+			traverse_AST(expr->value.binary.left, code, -1 * num);
 		}
 
+		if (num == 2) {
+			str_cat(code, "\tpopq %rax\n");
+		}
 		if (str_cmp(expr->value.binary.oparator, "+") == 0) {
-			if (flag == 1) {
-				str_cat(code, "\tpopq %rax\n");
-			}
-			if (stack[index] == -1) {
+			if (flag < 0) {
 				str_cat(code, "\taddq %rbx, %rax\n");
-				if (last_flag == 1)
+				if (flag == -2)
 					str_cat(code, "\tpushq %rax\n");
-			} else if (stack[index] == 1) {
+			} else if (flag > 0) {
 				str_cat(code, "\taddq %rax, %rbx\n");
 			}
-			index--;
 		} else if (str_cmp(expr->value.binary.oparator, "-") == 0) {
-			if (flag == 1) {
-				str_cat(code, "\tpopq %rax\n");
-			}
 			str_cat(code, "\tsubq %rbx, %rax\n");
-			if (stack[index] == -1) {
-				if (last_flag == 1)
-					str_cat(code, "\tpushq %rax\n");
-			}
-			if (stack[index] == 1) {
+			if (flag == -2) {
+				str_cat(code, "\tpushq %rax\n");
+			} else if (flag > 0) {
 				str_cat(code, "\tmovq %rax, %rbx\n");
 			}
-			index--;
 		} else if (str_cmp(expr->value.binary.oparator, "*") == 0) {
-			if (flag == 1) {
-				str_cat(code, "\tpopq %rax\n");
-			}
 			str_cat(code, "\timulq %rbx, %rax\n");
-			if (stack[index] == -1) {
-				if (last_flag == 1)
-					str_cat(code, "\tpushq %rax\n");
-			}
-			if (stack[index] == 1) {
+			if (flag == -2) {
+				str_cat(code, "\tpushq %rax\n");
+			} if (flag > 0) {
 				str_cat(code, "\tmovq %rax, %rbx\n");
 			}
-			index--;
 		} else if (str_cmp(expr->value.binary.oparator, "/") == 0) {
-			if (flag == 1) {
-				str_cat(code, "\tpopq %rax\n");
-			}
 			str_cat(code, "\txor %rdx, %rdx\n");
 			str_cat(code, "\tdivq %rbx\n");
-			if (stack[index] == -1) {
-				if (last_flag == 1)
-					str_cat(code, "\tpushq %rax\n");
-			}
-			if (stack[index] == 1) {
+			if (flag == -2) {
+				str_cat(code, "\tpushq %rax\n");
+			} else if (flag > 0) {
 				str_cat(code, "\tmovq %rax, %rbx\n");
 			}
-			index--;
 		}
 	} else if (expr->type == AST_EXPR_NUMBER) {
 		str_cat(code, "\tmovq $");
 		str_cat(code, itoa(expr->value.number));
-		if (stack[index] == -1)
+		if (flag == -1)
 			str_cat(code, ", %rax\n");
-		else if (stack[index] == 1)
+		else if (flag == 1)
 			str_cat(code, ", %rbx\n");
-		index--;
 	} else if (expr->type == AST_EXPR_IDENTIFIER) {
 		str_cat(code, "\tmovq -");
 		str_cat(code, itoa(get_offset(expr->value.identifier)));
-		if (stack[index] == -1)
+		if (flag == -1)
 			str_cat(code, "(%rbp), %rax\n");
-		else if (stack[index] == 1)
+		else if (flag == 1)
 			str_cat(code, "(%rbp), %rbx\n");
-		index--;
 	} else if (expr->type == AST_EXPR_CALL) {
 		for (int i = 0; i < expr->value.call.argc; i++) {
 			if (expr->value.call.args[i]->type == AST_EXPR_NUMBER) {
@@ -342,16 +319,15 @@ void traverse_AST(struct AST_expr *expr, char *code, int last_flag)
 				break;
 			}
 		}
-		if (stack[index] == 1)
+		if (flag == 1)
 			str_cat(code, "\tpushq %rax\n");
 		str_cat(code, "\tcall ");
 		str_cat(code, expr->value.call.name->value.identifier);
 		str_cat(code, "\n");
-		if (stack[index] == 1) {
+		if (flag == 1) {
 			str_cat(code, "\tmovq %rax, %rbx\n");
 			str_cat(code, "\tpopq %rax\n");
 		}
-		index--;
 	}
 }
 
