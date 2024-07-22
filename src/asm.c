@@ -155,8 +155,6 @@ struct symbol_memory_layout *get_func_memory_layout(const char *name)
 			index++;
 		}
 	}
-#include "io.h"
-	print("%d %d %d\n", start, end, defined);
 	return layout;
 }
 
