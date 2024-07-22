@@ -160,20 +160,18 @@ struct symbol_memory_layout *get_func_memory_layout(const char *name)
 
 static int stack[16];
 static int index;
-static int deepin;
-
-void traverse_AST(struct AST_expr *expr, char *code)
+void traverse_AST(struct AST_expr *expr, char *code, int last_flag)
 {
 	if (expr->type == AST_EXPR_ROOT) {
 		for (int i = 0; i < expr->value.root.count; i++) {
-			traverse_AST(expr->value.root.function[i], code);
+			traverse_AST(expr->value.root.function[i], code, 0);
 		}
 	} else if (expr->type == AST_EXPR_FUNCTION) {
 		func_memory_layout = get_func_memory_layout(
 			expr->value.function.prototype->value.prototype.name
 				->value.identifier);
-		traverse_AST(expr->value.function.prototype, code);
-		traverse_AST(expr->value.function.body, code);
+		traverse_AST(expr->value.function.prototype, code, 0);
+		traverse_AST(expr->value.function.body, code, 0);
 		str_cat(code, "\tleave\n");
 		str_cat(code, "\tret\n");
 		str_cat(code, "\n");
@@ -212,13 +210,12 @@ void traverse_AST(struct AST_expr *expr, char *code)
 		for (int i = 0; i < expr->value.body.count; i++) {
 			index = 0;
 			stack[index] = -1;
-			deepin = 0;
-			traverse_AST(expr->value.body.expr[i], code);
+			traverse_AST(expr->value.body.expr[i], code, 0);
 			str_cat(code, "\n");
 		}
 	} else if (expr->type == AST_EXPR_BINARY) {
 		if (str_cmp(expr->value.binary.oparator, "=") == 0) {
-			traverse_AST(expr->value.binary.right, code);
+			traverse_AST(expr->value.binary.right, code, 0);
 			str_cat(code, "\tmovq %rax, -");
 			str_cat(code,
 				itoa(get_offset(expr->value.binary.left->value
@@ -229,21 +226,20 @@ void traverse_AST(struct AST_expr *expr, char *code)
 		int flag = 0;
 		if (expr->value.binary.left->type == AST_EXPR_BINARY &&
 		    expr->value.binary.right->type == AST_EXPR_BINARY) {
-			deepin++;
 			flag = 1;
 		}
 
 		if (expr->value.binary.left->type == AST_EXPR_BINARY ||
 		    expr->value.binary.right->type != AST_EXPR_BINARY) {
 			stack[++index] = -1;
-			traverse_AST(expr->value.binary.left, code);
+			traverse_AST(expr->value.binary.left, code, flag);
 			stack[++index] = 1;
-			traverse_AST(expr->value.binary.right, code);
+			traverse_AST(expr->value.binary.right, code, flag);
 		} else {
 			stack[++index] = 1;
-			traverse_AST(expr->value.binary.right, code);
+			traverse_AST(expr->value.binary.right, code, flag);
 			stack[++index] = -1;
-			traverse_AST(expr->value.binary.left, code);
+			traverse_AST(expr->value.binary.left, code, flag);
 		}
 
 		if (str_cmp(expr->value.binary.oparator, "+") == 0) {
@@ -252,13 +248,10 @@ void traverse_AST(struct AST_expr *expr, char *code)
 			}
 			if (stack[index] == -1) {
 				str_cat(code, "\taddq %rbx, %rax\n");
-				if (deepin > 0)
+				if (last_flag == 1)
 					str_cat(code, "\tpushq %rax\n");
 			} else if (stack[index] == 1) {
 				str_cat(code, "\taddq %rax, %rbx\n");
-			}
-			if (flag == 1) {
-				deepin--;
 			}
 			index--;
 		} else if (str_cmp(expr->value.binary.oparator, "-") == 0) {
@@ -267,14 +260,11 @@ void traverse_AST(struct AST_expr *expr, char *code)
 			}
 			str_cat(code, "\tsubq %rbx, %rax\n");
 			if (stack[index] == -1) {
-				if (deepin > 0)
+				if (last_flag == 1)
 					str_cat(code, "\tpushq %rax\n");
 			}
 			if (stack[index] == 1) {
 				str_cat(code, "\tmovq %rax, %rbx\n");
-			}
-			if (flag == 1) {
-				deepin--;
 			}
 			index--;
 		} else if (str_cmp(expr->value.binary.oparator, "*") == 0) {
@@ -283,14 +273,11 @@ void traverse_AST(struct AST_expr *expr, char *code)
 			}
 			str_cat(code, "\timulq %rbx, %rax\n");
 			if (stack[index] == -1) {
-				if (deepin > 0)
+				if (last_flag == 1)
 					str_cat(code, "\tpushq %rax\n");
 			}
 			if (stack[index] == 1) {
 				str_cat(code, "\tmovq %rax, %rbx\n");
-			}
-			if (flag == 1) {
-				deepin--;
 			}
 			index--;
 		} else if (str_cmp(expr->value.binary.oparator, "/") == 0) {
@@ -300,14 +287,11 @@ void traverse_AST(struct AST_expr *expr, char *code)
 			str_cat(code, "\txor %rdx, %rdx\n");
 			str_cat(code, "\tdivq %rbx\n");
 			if (stack[index] == -1) {
-				if (deepin > 0)
+				if (last_flag == 1)
 					str_cat(code, "\tpushq %rax\n");
 			}
 			if (stack[index] == 1) {
 				str_cat(code, "\tmovq %rax, %rbx\n");
-			}
-			if (flag == 1) {
-				deepin--;
 			}
 			index--;
 		}
@@ -377,7 +361,7 @@ char *asm_code_generator(struct AST_expr *root,
 	table = global_symbol_table;
 	char *code = (void *)alloc_memory(sizeof(char) * 8192);
 	str_copy(code, start_code);
-	traverse_AST(root, code);
+	traverse_AST(root, code, 0);
 
 	return code;
 }
